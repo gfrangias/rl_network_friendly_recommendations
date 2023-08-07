@@ -1,0 +1,63 @@
+
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage[indLines=true]{algpseudocodex}
+\usepackage{hyperref}
+
+\title{.}
+\author{Georgios Frangias}
+\date{August 2023}
+
+\begin{document}
+
+\maketitle
+
+Algorithm 1 On-policy SLATEQ for Live Experiments\\
+\footnotesize
+\begin{algorithmic}[1]
+    \State \textbf{Parameters}:
+    \begin{itemize}
+        \item $T$ : the number of iterations.
+        \item $M$ : the interval to update label network.
+        \item $\gamma$ : discount rate.
+        \item $\theta_{\operatorname{main}}$ : the parameter for the main neural network.
+        \item $\bar{Q}_{\text {main }}$ : that predicts items' long-term value.
+        \item $\theta_{\text {label }}$ : the parameter for the label neural network $\bar{Q}_{\text {label }}$.
+        \item $\theta_{\text {pctr }}:$ the parameter for the neural network that predicts items' pCTR.
+    \end{itemize}
+
+    \State \textbf{Input}: 
+    \begin{itemize}
+        \item $D_{\text {training }}=\left(s, A, C, L_{\text {myopic }}, s^{\prime}, A^{\prime}\right)$ : the training data set.
+        \item $s$ : current state features
+        \item $A=\left(a_1, \ldots, a_k\right)$ : recommended slate of items in current state; $a_i$ denotes item features
+        \item $C=\left(c_1, \ldots, c_k\right): c_i$ denotes whether item $a_i$ is clicked
+        \item $L_{\text {myopic }}=\left(l_{\text {myopic }}^1, \ldots, l_{\text {myopic }}^k\right):$ myopic (immediate) labels
+        \item $s^{\prime}$ : next state features
+        \item $A^{\prime}=\left(a_1^{\prime}, \ldots, a_k^{\prime}\right):$ recommended slate of items in next state.
+    \end{itemize}
+
+    \State \textbf{Output}: Trained Q-network $\bar{Q}_{\text {main }}$ that predicts items' long-term value. 
+
+    \State \textbf{Initialization}: $\theta_{\text {label }}=0, \theta_{\text {main }}$ randomly, $\theta_{p c t r}$ randomly
+
+    \For{$i=1 \ldots T$}
+        \If{$i \bmod M=0$}
+            \State $\theta_{\text {label }} \gets \theta_{\text {main }}$
+        \EndIf
+        \For{$\text{each example}\left(s, A, C, L_{\text {myopic }}, s^{\prime}, A^{\prime}\right) \in D_{\text {training }}$} 
+            \For{$\text{each item } a_i \in A$}
+                \State update $\theta_{\text {pctr }}$ using click label $c_i$
+                \If{$a_i$ is clicked}
+                    \State probability: $p \operatorname{CTR}\left(s^{\prime}, a_i^{\prime}, A^{\prime}\right) \leftarrow p \operatorname{CTR}\left(s^{\prime}, a_i^{\prime}\right) / \sum_{a_i^{\prime} \in A} p\operatorname{CTR}\left(s^{\prime}, a_i^{\prime}\right)$
+                    \State LTV label: $l_{\text {ltv }}^i \leftarrow l_{\text {myopic }}^i+\sum_{a_i^{\prime} \in A^{\prime}} p \operatorname{CTR}\left(s^{\prime}, a_i^{\prime}, A^{\prime}\right) \bar{Q}_{\text {label }}\left(s^{\prime}, a_i^{\prime}\right)$
+                    \State update $\theta_{\text {main }}$ using LTV label $l_{l t v}^i$
+                \EndIf  
+            \EndFor
+        \EndFor
+    \EndFor
+\end{algorithmic}
+\vfill
+Taken from \href{https://arxiv.org/abs/1905.12767}{arXiv:1905.12767}
+\end{document}
